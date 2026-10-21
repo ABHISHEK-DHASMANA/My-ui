@@ -51,6 +51,23 @@ describe("CompanyLogo", () => {
     );
   });
 
+  it.each([
+    [
+      "Mitsubishi UFJ Financial Group, Inc.",
+      "https://www.mufg.jp/dam/cmn/cmn_logo_mufg_001.png",
+    ],
+    [
+      "Tata Consultancy Services Limited",
+      "https://upload.wikimedia.org/wikipedia/commons/9/9b/TATA_Consultancy_Services_Logo.svg",
+    ],
+  ])("uses the verified logo override for %s", (name, logoUrl) => {
+    render(
+      <CompanyLogo name={name} logoUrl="https://invalid.example/broken.png" />
+    );
+
+    expect(screen.getByAltText(`${name} logo`)).toHaveAttribute("src", logoUrl);
+  });
+
   it("uses a first-party favicon when a company has no valid logo URL", async () => {
     render(
       <CompanyLogo name="Hexagon Capability Center India" logoUrl="NA" />
@@ -60,6 +77,44 @@ describe("CompanyLogo", () => {
       expect(screen.getByAltText("Hexagon Capability Center India icon")).toHaveAttribute(
         "src",
         "https://hexagon.com/favicon.ico"
+      )
+    );
+  });
+
+  it("uses the verified Schneider Electric favicon after logo URLs fail", async () => {
+    render(
+      <CompanyLogo
+        name="Schneider Electric"
+        logoUrl="https://invalid.example/schneider.svg"
+      />
+    );
+
+    fireEvent.error(screen.getByAltText("Schneider Electric logo"));
+    await waitFor(() =>
+      expect(screen.getByAltText("Schneider Electric icon")).toHaveAttribute(
+        "src",
+        "https://www.se.com/favicon.ico"
+      )
+    );
+  });
+
+  it("uses Zepto's correct public domain when its stored URL fails", async () => {
+    render(
+      <CompanyLogo
+        name="Zepto Technologies Private Limited"
+        logoUrl="https://invalid.example/zepto.svg"
+      />
+    );
+
+    fireEvent.error(
+      screen.getByAltText("Zepto Technologies Private Limited logo")
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByAltText("Zepto Technologies Private Limited icon")
+      ).toHaveAttribute(
+        "src",
+        "https://www.google.com/s2/favicons?domain=zeptonow.com&sz=128"
       )
     );
   });

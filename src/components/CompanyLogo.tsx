@@ -18,6 +18,7 @@ const COMPANY_LOGO_DOMAINS: Record<string, string> = {
   adobeinc: "adobe.com",
   genpactltd: "genpact.com",
   ubertechnologiesinc: "uber.com",
+  zeptotechnologiesprivatelimited: "zeptonow.com",
   consiliollc: "consilio.com",
   btgroupplc: "bt.com",
   delltechnologiesinc: "dell.com",
@@ -26,11 +27,19 @@ const COMPANY_LOGO_DOMAINS: Record<string, string> = {
   airbusse: "airbus.com",
 };
 
+const COMPANY_LOGO_OVERRIDES: Record<string, string> = {
+  mitsubishiufjfinancialgroupinc:
+    "https://www.mufg.jp/dam/cmn/cmn_logo_mufg_001.png",
+  tataconsultancyserviceslimited:
+    "https://upload.wikimedia.org/wikipedia/commons/9/9b/TATA_Consultancy_Services_Logo.svg",
+};
+
 const COMPANY_FAVICON_URLS: Record<string, string> = {
   thebankofnewyorkmelloncorporation: "https://www.bny.com/favicon.ico",
   nutanixinc: "https://www.nutanix.com/favicon.ico",
   hexagoncapabilitycenterindia: "https://hexagon.com/favicon.ico",
   delltechnologiesinc: "https://www.dell.com/favicon.ico",
+  schneiderelectric: "https://www.se.com/favicon.ico",
 };
 
 export function CompanyLogo({
@@ -41,8 +50,11 @@ export function CompanyLogo({
   size = "md",
 }: CompanyLogoProps) {
   const normalizedName = name.toLowerCase().replace(/[^a-z0-9]/g, "");
-  const logoCandidates = (logoUrl || "")
-    .split(";")
+  const logoCandidates = [
+    COMPANY_LOGO_OVERRIDES[normalizedName],
+    ...(logoUrl || "").split(";"),
+  ]
+    .filter((url): url is string => Boolean(url))
     .map(url => url.trim())
     .flatMap(url => {
       try {
