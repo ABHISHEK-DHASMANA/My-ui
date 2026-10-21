@@ -1,5 +1,4 @@
-import React, { useState } from "react";
-import { Building2 } from "lucide-react";
+import React, { useEffect, useState } from "react";
 
 interface CompanyLogoProps {
   name: string;
@@ -9,6 +8,31 @@ interface CompanyLogoProps {
   size?: "sm" | "md" | "lg" | "xl";
 }
 
+const COMPANY_LOGO_DOMAINS: Record<string, string> = {
+  oraclefinancialservicessoftwarelimited: "oracle.com",
+  simplilearn: "simplilearn.com",
+  wellsfargocompany: "wellsfargo.com",
+  atlassiancorporation: "atlassian.com",
+  deepmind: "deepmind.google",
+  akamaitechnologiesindiapvtltd: "akamai.com",
+  adobeinc: "adobe.com",
+  genpactltd: "genpact.com",
+  ubertechnologiesinc: "uber.com",
+  consiliollc: "consilio.com",
+  btgroupplc: "bt.com",
+  delltechnologiesinc: "dell.com",
+  fidelityinvestments: "fidelity.com",
+  jpmorganchaseco: "jpmorganchase.com",
+  airbusse: "airbus.com",
+};
+
+const COMPANY_FAVICON_URLS: Record<string, string> = {
+  thebankofnewyorkmelloncorporation: "https://www.bny.com/favicon.ico",
+  nutanixinc: "https://www.nutanix.com/favicon.ico",
+  hexagoncapabilitycenterindia: "https://hexagon.com/favicon.ico",
+  delltechnologiesinc: "https://www.dell.com/favicon.ico",
+};
+
 export function CompanyLogo({
   name,
   logoUrl,
@@ -16,15 +40,75 @@ export function CompanyLogo({
   className = "",
   size = "md",
 }: CompanyLogoProps) {
-  const [imgError, setImgError] = useState(false);
-  const [cdnError, setCdnError] = useState(false);
+  const normalizedName = name.toLowerCase().replace(/[^a-z0-9]/g, "");
+  const logoCandidates = (logoUrl || "")
+    .split(";")
+    .map(url => url.trim())
+    .flatMap(url => {
+      try {
+        const parsed = new URL(url);
+        if (parsed.hostname === "images.search.yahoo.com") {
+          const imageUrl = parsed.searchParams.get("imgurl");
+          return imageUrl ? [imageUrl] : [];
+        }
+      } catch {
+        return [];
+      }
+      return [url];
+    })
+    .filter(url => {
+      try {
+        const parsed = new URL(url);
+        return parsed.protocol === "http:" || parsed.protocol === "https:";
+      } catch {
+        return false;
+      }
+    });
+  const [candidateIndex, setCandidateIndex] = useState(0);
+  const [directFaviconError, setDirectFaviconError] = useState(false);
+  const [faviconError, setFaviconError] = useState(false);
 
-  // Extract domain from website or name
+  useEffect(() => {
+    setCandidateIndex(0);
+    setDirectFaviconError(false);
+    setFaviconError(false);
+  }, [logoUrl, name, websiteUrl]);
+
+  const knownDomain = COMPANY_LOGO_DOMAINS[normalizedName];
+  const knownFaviconUrl = COMPANY_FAVICON_URLS[normalizedName];
+
+  // Extract a company domain from the website or a first-party logo URL.
   let domain = "";
-  if (websiteUrl) {
+  const domainSources = [websiteUrl, ...logoCandidates].filter(
+    (source): source is string => Boolean(source)
+  );
+  const domainSource = knownDomain || domainSources.find(source => {
     try {
-      const url = new URL(websiteUrl.startsWith("http") ? websiteUrl : `https://${websiteUrl}`);
-      domain = url.hostname.replace(/^www\./, "");
+      const hostname = new URL(
+        source.startsWith("http") ? source : `https://${source}`
+      ).hostname.toLowerCase();
+      const isThirdPartyLogoHost = [
+        "upload.wikimedia.org",
+        "commons.wikimedia.org",
+        "1000logos.net",
+        "pbs.twimg.com",
+        "play-lh.googleusercontent.com",
+        "in.images.search.yahoo.com",
+        "imgproxy.divecdn.com",
+        "pngkey.com",
+        "logo.wine",
+      ].some(host => hostname === host || hostname.endsWith(`.${host}`));
+      return !isThirdPartyLogoHost;
+    } catch {
+      return false;
+    }
+  });
+
+  if (domainSource) {
+    try {
+      domain = knownDomain || new URL(
+        domainSource.startsWith("http") ? domainSource : `https://${domainSource}`
+      ).hostname.replace(/^www\./, "");
     } catch {
       // ignore
     }
@@ -40,25 +124,45 @@ export function CompanyLogo({
 
   const initial = (name || "C").trim().charAt(0).toUpperCase();
 
-  // 1. Direct logo_url from seed / database
-  if (logoUrl && !imgError) {
+  if (
+    candidateIndex >= logoCandidates.length &&
+    knownFaviconUrl &&
+    !directFaviconError
+  ) {
     return (
       <div
         className={`relative flex items-center justify-center bg-white border border-slate-200 overflow-hidden shadow-xs shrink-0 ${sizeClasses} ${className}`}
       >
         <img
-          src={logoUrl}
-          alt={`${name} logo`}
+          src={knownFaviconUrl}
+          alt={`${name} icon`}
           className="w-full h-full object-contain p-1.5"
-          onError={() => setImgError(true)}
+          onError={() => setDirectFaviconError(true)}
           loading="lazy"
         />
       </div>
     );
   }
 
-  // 2. High-resolution Google favicon CDN (requires no API key, works globally)
-  if (domain && !cdnError) {
+  // Try each semicolon-separated logo URL before falling back to a favicon.
+  if (candidateIndex < logoCandidates.length) {
+    return (
+      <div
+        className={`relative flex items-center justify-center bg-white border border-slate-200 overflow-hidden shadow-xs shrink-0 ${sizeClasses} ${className}`}
+      >
+        <img
+          src={logoCandidates[candidateIndex]}
+          alt={`${name} logo`}
+          className="w-full h-full object-contain p-1.5"
+          onError={() => setCandidateIndex(index => index + 1)}
+          loading="lazy"
+        />
+      </div>
+    );
+  }
+
+  // Google favicon fallback requires no API key.
+  if (domain && !faviconError) {
     const cdnUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=128`;
     return (
       <div
@@ -68,7 +172,7 @@ export function CompanyLogo({
           src={cdnUrl}
           alt={`${name} icon`}
           className="w-full h-full object-contain p-1.5"
-          onError={() => setCdnError(true)}
+          onError={() => setFaviconError(true)}
           loading="lazy"
         />
       </div>

@@ -1,5 +1,3 @@
-import { SEED_COMPANIES } from "@/data/seedCompanies";
-
 export interface CompanySummary {
   id: number;
   name: string;
@@ -211,22 +209,4 @@ export function normalizeDashboardSkills(skillLevels: any[]): DashboardSkill[] {
       difficulty,
     };
   });
-}
-
-// Phase 1 loader helper reading from seed
-export function getAllCompanies(): CompanySummary[] {
-  return SEED_COMPANIES.map(company =>
-    normalizeCompanySummary(company.short_json, company.company_id)
-  );
-}
-
-export function getCompanyById(id: number) {
-  const seed = SEED_COMPANIES.find(c => c.company_id === id) || SEED_COMPANIES[0];
-  if (!seed) return null;
-
-  return {
-    summary: normalizeCompanySummary(seed.short_json, seed.company_id),
-    profile: normalizeCompanyProfile(seed.full_json, seed.short_json),
-    skills: normalizeDashboardSkills(seed.skill_levels),
-  };
 }

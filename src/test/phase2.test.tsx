@@ -1,27 +1,20 @@
 /**
  * Phase 2 — Supabase API & Data Layer Tests
  *
- * Strategy: mock @/lib/supabaseClient to return null so all three hooks
- * exercise the seed-fallback path. This validates:
+ * Strategy: the shared test setup mocks the Supabase client with seed-shaped
+ * database responses. This validates:
  *   - Normalizer output shapes (name, company_type, profile fields, skills)
  *   - Bloom / criticality derivations
  *   - 10-level roadmap topology
  *   - CTC / stipend / selection_ratio are never present
  *
  * We do NOT test real Supabase network connectivity here (that belongs in
- * an integration/e2e suite). The supabase=null branch is the guaranteed
- * observable path in CI and in Phase 1 fallback scenarios.
+ * an integration/e2e suite).
  */
 import React from "react";
-import { describe, it, expect, vi, beforeAll } from "vitest";
+import { describe, it, expect } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-
-// Mock supabaseClient BEFORE importing companyApi so the module-level
-// `supabase` import inside companyApi resolves to null.
-vi.mock("../lib/supabaseClient", () => ({
-  supabase: null,
-}));
 
 import { useCompanies, useCompanyProfile, useCompanySkills } from "../lib/companyApi";
 import { supabase } from "../lib/supabaseClient";
@@ -40,9 +33,8 @@ function createWrapper() {
 }
 
 describe("Phase 2 — Supabase API & Data Layer Tests", () => {
-  it("Supabase client handles empty .env safely without unhandled exception", () => {
-    // With the mock in place supabase is null — confirms safe null handling
-    expect(supabase === null || typeof (supabase as any)?.from === "function").toBe(true);
+  it("uses the Supabase client for database reads", () => {
+    expect(typeof supabase?.from).toBe("function");
   });
 
   it("useCompanies hook returns normalized company summaries with zero table joins", async () => {

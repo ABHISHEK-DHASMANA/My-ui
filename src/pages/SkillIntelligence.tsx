@@ -20,7 +20,6 @@ import {
   BLOOM_META,
   CRITICALITY_META,
 } from "@/lib/companyData";
-import { getSkillTopics } from "@/data/skillTopics";
 
 export default function SkillIntelligence() {
   const navigate = useNavigate();
@@ -275,10 +274,7 @@ export default function SkillIntelligence() {
           <div className="space-y-3">
             {sortedSkills.map(skill => {
               const isExpanded = !!expandedSkills[skill.skill_set_id];
-              // Retrieve topics from Supabase topicsMap with fallback to getSkillTopics
-              const topics =
-                topicsMap[skill.skill_set_id] ||
-                getSkillTopics(skill.skill_set_id);
+              const topics = topicsMap[skill.skill_set_id] ?? [];
               const scorePercent = (skill.required_level / 10) * 100;
               const bloomMeta = BLOOM_META[skill.bloom_level];
 

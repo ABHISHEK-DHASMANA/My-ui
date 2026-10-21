@@ -8,16 +8,15 @@ A high-performance, mobile-first React + Vite + TypeScript + Tailwind v3 + shadc
 
 ## Phase 2 — Supabase (Read-Only, JSON-Driven)
 
-The portal is wired to Supabase using pure JSON-driven queries with zero database joins on the 90+ enterprise tables.
+The public portal reads company data from `public.company_json` and skills from `company_skill_levels`, `skill_set_master`, `proficiency_levels`, and `skill_set_topics`. It does not query or join the other normalized company tables.
 
 ### Quick Setup:
-1. Open `.env` in the root of the project.
-2. Paste your project credentials:
+1. Paste your Supabase project URL and anon key into the root `.env` file:
    ```env
-   VITE_SUPABASE_URL=https://your-project.supabase.co
-   VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+   VITE_SUPABASE_URL=
+   VITE_SUPABASE_ANON_KEY=
    ```
-3. Run the development server:
+2. Run the development server:
    ```bash
    npm install && npm run dev
    ```
@@ -25,8 +24,8 @@ The portal is wired to Supabase using pure JSON-driven queries with zero databas
 ### Database Architecture in Phase 2:
 - **Company Cards / Directory**: `SELECT company_id, short_json FROM company_json`
 - **Single Company Intelligence**: `SELECT company_id, short_json, full_json FROM company_json WHERE company_id = :id` (powers all 22 institutional sections)
-- **Skills & Topic Roadmaps**: Queried from the 4 designated tables (`company_skill_levels`, `skill_set_master`, `proficiency_levels`, `skill_set_topics`) and mapped into 10-level Bloom competency ladders.
-- **Graceful Fallback**: If `.env` is empty or during offline testing, the portal gracefully falls back to the local Accenture seed dataset without throwing unhandled exceptions.
+- **Skills & Topic Roadmaps**: Read from the four designated skills tables and mapped into 10-level Bloom competency ladders in the client.
+- **Errors**: Missing credentials or query errors are shown on the relevant page with a retry action; the seed files are retained as reference data and are not used by the live app.
 
 ---
 
@@ -46,9 +45,9 @@ The portal is wired to Supabase using pure JSON-driven queries with zero databas
 - **Short Tag:** `JSS`
 - **Branding Standard:** Strictly follows the enterprise text-only wordmark and header pill (`JSS · INTELLIGENCE PLATFORM`). No college logo image files are bundled or loaded.
 
-### 4. Seamless Phase 2 Supabase Readiness
+### 4. Phase 2 Supabase Data Access
 - The data normalization layer in `src/lib/companyData.ts` (`normalizeCompanySummary`, `normalizeCompanyProfile`, `normalizeDashboardSkills`) directly ingests raw JSONB objects (`short_json` and `full_json`).
-- When Phase 2 connects to Supabase, swapping from local seed data to Supabase queries will be a seamless one-file modification in the query hooks without altering UI components.
+- `src/data/seedCompanies.ts` and `src/data/skillTopics.ts` remain available as reference datasets but are not imported by the live rendering path.
 
 ### 5. Strict Data Privacy & Placement Compliance
 - **Zero Financial Disclosures:** As mandated, **CTC, Stipend, and Selection Ratio** are completely omitted across all summaries, intelligence sections, and profiles.
